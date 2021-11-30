@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Pong</title>
+</head>
+<body>
+    <script>
+        var game = new Phaser.Game(480, 640, Phaser.AUTO, '', {preload: preload, create: create, update: update});
+
+        var playerBet;
+        var computerBet;
+        var ball;
+
+        var playerWin = 0;
+        var computerWin = 0;
+
+        var computerBetSpeed = 230;
+        var ballSpeed = 300;
+        var ballReleased = false;
+
+        var level = 1;
+
+        var hits = 0;
+
+        //Carregar as imagens do jogo sendo representadas pelos objetos
+        function preload(){
+            game.load.image('bet', 'assets/bet.png');
+            game.load.image('ball', 'assets/ball.png');
+            game.load.image('background', 'assets/background.png');
+            game.load.image('star', 'assets/star.png');
+        }
+
+        function create(){
+            game.canvas.style.cursor = 'none';
+            game.add.titleSprite(0, 0, 480, 640, 'background');
+            //Criação das raquetes do jogador e do computador
+            playerBet = createBet(game.world.centerX, 600);
+            computerBet = createBet(game.world.centerX, 20);
+            //Criação do texto mostrando o nível atual
+            textLevel = game.add.text(0, 0, 'Nível: '+level, {fill: '#efefefe'});
+            text = game.add.text(game.world.centerX, game.world.centerY, '', {fill: '#efefefe'})
+            text.anchor.setTo(0.5, 0.5);
+            //Colocando a bolinha no centro
+            ball = game.add.emitter(0, 0, 200);
+            emitter.makerParticles('star');
+            //Liberando a bolinha
+            game.input.onDown.add(releaseBall, this);
+        }
+
+        function particleBurst(x, y){
+            //Define o emissor de partículas no ponto x, y
+            emitter.x = x;
+            emitter.y = y;
+
+            //O primeiro parâmetro determina se irá libertar todas as partículas de uma só vez (modo de explodir, explosão)
+            //O segundo parâmetro define o tempo de vida de uma partícula em milissegundos
+            //Na explosão o terceiro parâmetro é ignorado
+            //O último parâmetro determina quantas partículas serão lançadas na "explisão"
+            emitter.start(true, 500, null, 5);
+        }
+
+        function update(){
+            playerBet.x = gameInput.x;
+            
+            var playerBeHalfWidth = playerBet.width / 2;
+
+            if(playerBet.x < playerBeHalfWidth){
+                playerBet.x = playerBeHalfWidth;
+            }
+            else if(playerBet.x > game.width - playerBeHalfWidth){
+                playerBet.x = game.width - playerBeHalfWidth;
+            }
+
+            if(computerBet.x - ball.x >= -15 && comlputerBet.x - ball.x <= 15){
+                computerBet.body.velocity.x = 0;
+            }
+            else if(computerBet.x - ball.x < -15){
+                computerBet.body.velocity.x = -computerBetSpeed;
+            }
+            else if(computerBet.x - ball.x > 15){
+                computerBet.body.velocity.x = -computerBetSpeed;
+            }
+            else {
+                computerBet.body.velocity.x = 0;
+            }
+
+            //Verificar todo o tempo se ocorre a colisão entre a raquete e a bolinha para aumentar um nível 
+            game.pyshics.collide(ball, playerBet, ballHitsBet, null, this);
+            game.physics.collide(ball, computerBet, ballHitsBet, null, this);
+
+            checkGoal();
+        }
+
+        function createBet(x, y){
+            var Bet = game.add.sprite(x, y, 'bet');
+            bet.anchor.setTo(0.5, 0.5);
+            bet.body.collideWorlBounds = true;
+            bet.body.bounce.setTo(1,1);
+            bet.body.immovable = true;
+            return bet;
+        }
+
+        function releaseBall(){
+            if(!ballReleased){
+                ball.body.velocity.x = ballSpeed + level * 20;
+                ball.body.velocity.y = ballSpeed - level * 20;
+                ballReleased = true;
+            }
+        }
+
+        function ballHitsBet(_ball, _bet){
+            //Aumente o contador e dá um empurrão na bola 
+            hits++;
+            //Na terceira colisão o jogo passa para outra nível.
+            if(hits == 3){
+                nextLevel();
+            }
+            //O efeito de impact -ocorre uma mudança de sentido
+            if(ball.y < 60){
+                emitter.gravity = 5;
+            }else if(ball.y > 580){
+                emitter.gravity = -5;
+            }
+            particleBurst(_bet.x, _bet.y);
+
+            if(_ball.x < _bet.x){
+                //A bola colidiu no lado esquerdo da raquete
+                diff = bet.x - ball.x;
+                _ball.body.velocity.x = (-12 * diff);
+            }
+            else if(_ball.x > _bet.x){
+                //A bola colidiu no lado direito da raquete
+                diff = ball.x = bet.x
+                _ball.body.velocity.x = (12 * diff);
+            }
+            else {
+              //A bola bateu no centro da raquete, adicionando um pouco de aleatoriamente (acidente) no seu aniversário
+              _ball.body.velocity.x = 2 + Math.random() * 8;  
+            }
+        }
+
+        function checkGoal(){
+            if(ball.y < 15){
+                nextLevel();
+                setBall();
+            } else if(ball.y > 625){
+                //Aqui o jogador não pode errar, por isso seria interessante criar o conceito de vidas
+                loose();
+                setBall();
+            }
+        }
+
+        function setBall(){
+            if(ballReleased){
+                ball.x = game.world.centerX;
+                ball.y = game.world.centerY;
+                ball.body.velocity.x = 0;
+                ball.body.velocity.y = 0;
+                ballReleased = false;
+            }
+        }
+    </script>
+</body>
+<script src="phaser.js"></script>
+</html>
